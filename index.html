@@ -32,7 +32,8 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 .summaryBody{padding:12px 14px;overflow:auto;-webkit-overflow-scrolling:touch}
 .summarySection{margin-bottom:16px}.summarySection:last-child{margin-bottom:0}
 .summaryTitle{font-weight:800;font-size:15px;margin-bottom:7px}.summaryTitle.doneT{color:#137a39}.summaryTitle.todoT{color:#333}
-.storeRow{padding:8px 9px;border-bottom:1px solid #eee;font-size:14px;line-height:1.35}.storeRow:last-child{border-bottom:0}
+.storeRow{display:block;width:100%;padding:9px;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;font-size:14px;line-height:1.35;color:#111}.storeRow:last-child{border-bottom:0}
+.storeJump{cursor:pointer}.storeJump:active{background:#f2f2f2}
 .storeCode{display:inline-block;min-width:54px;font-weight:800;margin-right:6px}
 .summaryFoot{padding:10px 14px;border-top:1px solid #ddd;text-align:right}
 #summaryClose{min-height:42px;padding:0 18px;border:0;border-radius:9px;background:#eee;font-weight:800}
@@ -166,11 +167,21 @@ function summaryHtml(){
 const doneList=[],todoList=[];
 S.data.forEach(x=>{const st=S.statuses[x.code];(st&&st.done===true?doneList:todoList).push(x);});
 doneList.sort((a,b)=>a.code.localeCompare(b.code));todoList.sort((a,b)=>a.code.localeCompare(b.code));
-const rows=list=>list.length?list.map(x=>'<div class="storeRow"><span class="storeCode">'+esc(x.code)+'</span>'+esc(x.name)+'</div>').join(''):'<div class="storeRow">없음</div>';
+const rows=list=>list.length?list.map(x=>'<button type="button" class="storeRow storeJump" data-code="'+esc(x.code)+'"><span class="storeCode">'+esc(x.code)+'</span>'+esc(x.name)+'</button>').join(''):'<div class="storeRow">없음</div>';
 return '<div class="summarySection"><div class="summaryTitle doneT">완료 '+doneList.length+'곳</div>'+rows(doneList)+'</div><div class="summarySection"><div class="summaryTitle todoT">미완료 '+todoList.length+'곳</div>'+rows(todoList)+'</div>';
 }
 function openSummary(){summaryBody.innerHTML=summaryHtml();summaryModal.classList.add('show');clearTextSelection();}
 function closeSummary(){summaryModal.classList.remove('show');clearTextSelection();}
+function jumpToStore(code){
+const x=byCode[code];const mk=S.markers[code];const iw=S.infoWindows[code];
+if(!x||!mk||!iw)return;
+closeSummary();
+if(S.opened)S.opened.close();
+const pos=mk.getPosition();
+S.map.setCenter(pos);
+if(S.map.getZoom()<17)S.map.setZoom(17);
+setTimeout(()=>{iw.setContent(infoHtml(x));iw.open(S.map,mk);S.opened=iw;},180);
+}
 function getWorkerName(){
 let n=localStorage.getItem('dealerWorkerName')||'';
 if(!n){n=(prompt('완료 처리할 직원 이름을 입력하세요.')||'').trim();if(n)localStorage.setItem('dealerWorkerName',n);}
@@ -194,6 +205,7 @@ cancelBtn.addEventListener('click',closeModal);
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 badge.addEventListener('click',e=>{e.stopPropagation();openSummary();});
 summaryClose.addEventListener('click',closeSummary);
+summaryBody.addEventListener('click',e=>{const row=e.target.closest?e.target.closest('.storeJump[data-code]'):null;if(row)jumpToStore(row.dataset.code);});
 summaryModal.addEventListener('click',e=>{if(e.target===summaryModal)closeSummary();});
 const mapEl=document.getElementById('map');
 let holdTimer=null,holdStartX=0,holdStartY=0;
