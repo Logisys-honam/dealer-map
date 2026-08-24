@@ -9,7 +9,8 @@
 html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-serif}
 #badge{position:fixed;z-index:10;left:10px;top:10px;background:white;padding:8px 11px;border-radius:9px;box-shadow:0 2px 8px #777;font-size:13px}
 .mk{background:#fff;border:2px solid #111;border-radius:6px;padding:3px 5px;font-weight:800;font-size:12px;white-space:nowrap;box-shadow:0 1px 4px #777;transform:translate(-50%,-100%)}
-.iw{padding:8px 10px;min-width:190px;font-size:13px;line-height:1.5}.iw b{font-size:15px}
+.iw{padding:8px 10px;min-width:210px;font-size:13px;line-height:1.5}.iw b{font-size:15px}
+.navbtn{display:block;margin-top:8px;padding:9px 10px;border-radius:7px;background:#03c75a;color:white;text-decoration:none;text-align:center;font-weight:700;font-size:14px}
 </style>
 </head>
 <body>
@@ -23,7 +24,9 @@ const b=new naver.maps.LatLngBounds();let opened=null;
 d.forEach(x=>{
 const p=new naver.maps.LatLng(x.lat,x.lng);b.extend(p);
 const mk=new naver.maps.Marker({map:m,position:p,icon:{content:'<div class="mk">'+esc(x.code)+'</div>',anchor:new naver.maps.Point(0,0)}});
-const iw=new naver.maps.InfoWindow({content:'<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+'</div>',borderWidth:0,pixelOffset:new naver.maps.Point(0,-12)});
+const navUrl='https://app.map.naver.com/launchApp/?elat='+encodeURIComponent(x.lat)+'&elng='+encodeURIComponent(x.lng)+'&etitle='+encodeURIComponent(x.name)+'&menu=navigation&version=11';
+const infoHtml='<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+'<a class="navbtn" href="'+navUrl+'" target="_blank" rel="noopener">네이버지도 길찾기</a></div>';
+const iw=new naver.maps.InfoWindow({content:infoHtml,borderWidth:0,pixelOffset:new naver.maps.Point(0,-12)});
 naver.maps.Event.addListener(mk,'click',()=>{if(opened)opened.close();iw.open(m,mk);opened=iw;});
 });
 if(d.length>1)m.fitBounds(b);else m.setZoom(16);
