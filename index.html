@@ -24,7 +24,7 @@ const b=new naver.maps.LatLngBounds();let opened=null;
 d.forEach(x=>{
 const p=new naver.maps.LatLng(x.lat,x.lng);b.extend(p);
 const mk=new naver.maps.Marker({map:m,position:p,icon:{content:'<div class="mk">'+esc(x.code)+'</div>',anchor:new naver.maps.Point(0,0)}});
-const navUrl='https://app.map.naver.com/launchApp/?elat='+encodeURIComponent(x.lat)+'&elng='+encodeURIComponent(x.lng)+'&etitle='+encodeURIComponent(x.name)+'&menu=navigation&version=11';
+const navUrl='nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Fcoca1440.github.io';
 const infoHtml='<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+'<a class="navbtn" href="'+navUrl+'" target="_blank" rel="noopener">네이버지도 길찾기</a></div>';
 const iw=new naver.maps.InfoWindow({content:infoHtml,borderWidth:0,pixelOffset:new naver.maps.Point(0,-12)});
 naver.maps.Event.addListener(mk,'click',()=>{if(opened)opened.close();iw.open(m,mk);opened=iw;});
