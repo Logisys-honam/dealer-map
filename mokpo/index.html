@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>목포지사 판매점 지도</title>
+<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=7qlkzlucix"></script>
+<style>
+html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-serif}
+#badge{position:fixed;z-index:10;left:10px;top:10px;background:white;padding:8px 11px;border-radius:9px;box-shadow:0 2px 8px #777;font-size:13px;cursor:pointer;user-select:none;-webkit-user-select:none}
+#syncState{margin-left:5px;font-size:11px;color:#666}
+.mk{background:#fff;border:2px solid #111;border-radius:6px;padding:3px 5px;font-weight:800;font-size:12px;white-space:nowrap;box-shadow:0 1px 4px #777;transform:translate(-50%,-100%);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.mk.done{background:#168844;color:#fff;border-color:#0e5c2d}
+.mk.done::after{content:' 완료';font-size:10px}
+.iw{padding:8px 10px;min-width:220px;font-size:13px;line-height:1.5}.iw b{font-size:15px}
+.doneLine{margin-top:5px;color:#137a39;font-weight:700}
+.navbtn{display:block;margin-top:8px;padding:9px 10px;border-radius:7px;background:#03c75a;color:white;text-decoration:none;text-align:center;font-weight:700;font-size:14px}
+#completeModal{position:fixed;z-index:3000;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px}
+#completeModal.show{display:flex}
+.modalBox{width:min(360px,100%);background:#fff;border-radius:14px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.modalTitle{font-size:18px;font-weight:800;margin-bottom:8px}
+.modalText{font-size:14px;line-height:1.55;color:#333;white-space:pre-line}
+.modalActions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.modalActions button{flex:1;min-width:90px;min-height:44px;border:0;border-radius:9px;font-weight:800;font-size:14px}
+#completeBtn{background:#168844;color:white}
+#undoBtn{background:#d9534f;color:white}
+#cancelBtn{background:#eee;color:#222}
+#summaryModal{position:fixed;z-index:3100;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:14px}
+#summaryModal.show{display:flex}
+.summaryBox{width:min(520px,100%);max-height:82%;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-direction:column}
+.summaryHead{padding:15px 16px 10px;font-size:18px;font-weight:800;border-bottom:1px solid #ddd}
+.summaryBody{padding:12px 14px;overflow:auto;-webkit-overflow-scrolling:touch}
+.summarySection{margin-bottom:16px}.summarySection:last-child{margin-bottom:0}
+.summaryTitle{font-weight:800;font-size:15px;margin-bottom:7px}.summaryTitle.doneT{color:#137a39}.summaryTitle.todoT{color:#333}
+.storeRow{display:block;width:100%;padding:9px;border:0;border-bottom:1px solid #eee;background:#fff;text-align:left;font-size:14px;line-height:1.35;color:#111}.storeRow:last-child{border-bottom:0}
+.storeJump{cursor:pointer}.storeJump:active{background:#f2f2f2}
+.storeCode{display:inline-block;min-width:54px;font-weight:800;margin-right:6px}
+.summaryFoot{padding:10px 14px;border-top:1px solid #ddd;text-align:right}
+#summaryClose{min-height:42px;padding:0 18px;border:0;border-radius:9px;background:#eee;font-weight:800}
+</style>
+</head>
+<body>
+<div id="badge"><div style="font-weight:800;margin-bottom:2px">목포지사 · 2026년 3분기 정기점검</div><b>30</b>개 판매점 · 완료 <b id="doneCount">0</b>곳 <span id="syncState">연결 준비중</span></div>
+<div id="map"></div>
+<div id="completeModal">
+<div class="modalBox">
+<div class="modalTitle" id="modalTitle"></div>
+<div class="modalText" id="modalText"></div>
+<div class="modalActions">
+<button type="button" id="completeBtn">완료 처리</button>
+<button type="button" id="undoBtn">완료 해제</button>
+<button type="button" id="cancelBtn">취소</button>
+</div></div></div>
+<div id="summaryModal">
+<div class="summaryBox">
+<div class="summaryHead">목포지사 · 판매점 진행 현황 · 2026년 3분기 정기점검</div>
+<div class="summaryBody" id="summaryBody"></div>
+<div class="summaryFoot"><button type="button" id="summaryClose">닫기</button></div>
+</div></div>
+<script>
+const d=[{"code":"19126","name":"풍년농약사","address":"전남 강진군 강진읍 보은로4길 2","lng":126.7741420,"lat":34.6385263},{"code":"24819","name":"사람과 컴퓨터","address":"전남 강진군 강진읍 중앙로 106-3","lng":126.7685886,"lat":34.6392357},{"code":"41702","name":"스타복권","address":"전남 목포시 고하대로 688-1","lng":126.3728010,"lat":34.8083700},{"code":"14622","name":"남악복권방","address":"전남 목포시 남악1로52번길 2","lng":126.4457999,"lat":34.8096889},{"code":"22789","name":"이삭","address":"전남 목포시 남악2로 54, 103호","lng":126.4551747,"lat":34.8099286},{"code":"11730","name":"복권나라","address":"전남 목포시 당가두로14번길 47-1, 103호","lng":126.4371540,"lat":34.8076060},{"code":"40326","name":"행운마트","address":"전남 목포시 번화로 50","lng":126.3848578,"lat":34.7864989},{"code":"21750","name":"알리바이(부영점)","address":"전남 목포시 부흥로 101","lng":126.4317692,"lat":34.8045733},{"code":"11720","name":"드림복권","address":"전남 목포시 산정로 159-3","lng":126.3923363,"lat":34.8028681},{"code":"15164","name":"보물섬","address":"전남 목포시 산정로 274,상가110호","lng":126.3865477,"lat":34.8115910},{"code":"19407","name":"열린서점","address":"전남 목포시 삼각로43번길 10","lng":126.4183139,"lat":34.8046149},{"code":"15163","name":"상동복권방","address":"전남 목포시 상리로9번길 21","lng":126.4147904,"lat":34.8136783},{"code":"14752","name":"명품복권방","address":"전남 목포시 섶나루길 122","lng":126.4189561,"lat":34.8105787},{"code":"14634","name":"미래유통","address":"전남 목포시 영산로 627","lng":126.4217794,"lat":34.8212626},{"code":"17535","name":"청과복권","address":"전남 목포시 영산로 525","lng":126.4178749,"lat":34.8127666},{"code":"21589","name":"코사마트정훈점","address":"전남 목포시 영산로 250","lng":126.3938192,"lat":34.8028738},{"code":"23020","name":"황금열쇠금고","address":"전남 목포시 영산로 135","lng":126.3868121,"lat":34.7945780},{"code":"19424","name":"복권세상","address":"전남 목포시 영산로270번길 2","lng":126.3955442,"lat":34.8037487},{"code":"14618","name":"하당복권방","address":"전남 목포시 옥암로 46","lng":126.4294417,"lat":34.8039275},{"code":"26767","name":"금강서점문구","address":"전남 목포시 용당로 151","lng":126.4006729,"lat":34.8008926},{"code":"40689","name":"남해공인중개사","address":"전남 목포시 용당로 59, A08호","lng":126.4018294,"lat":34.7930131},{"code":"18084","name":"대박복권","address":"전남 목포시 원산로 64","lng":126.3759616,"lat":34.8051573},{"code":"24916","name":"목포산정자유점","address":"전남 목포시 자유로 72","lng":126.3975534,"lat":34.7932573},{"code":"11721","name":"골든박스","address":"전남 목포시 청호로 219번길 51, 713동 101-103호","lng":126.3666233,"lat":34.8056842},{"code":"11728","name":"로또마트","address":"전남 목포시 통일대로75번길 10,상가109호","lng":126.4320185,"lat":34.8013387},{"code":"42290","name":"바라유통","address":"전남 목포시 평화로 10","lng":126.4278037,"lat":34.7970942},{"code":"41145","name":"정아산업","address":"전남 목포시 평화로95번길 12. 1층(상동)","lng":126.4345105,"lat":34.7985965},{"code":"25858","name":"목포세진점","address":"전남 목포시 해안로249번길 17(보광동3가)","lng":126.3871042,"lat":34.7876710},{"code":"40862","name":"남악중앙점","address":"전남 무안군 남악3로 82번길 20, 백석프라자 1층 104호","lng":126.4623902,"lat":34.8126418},{"code":"25804","name":"알라딘","address":"전남 무안군 면성1길 113","lng":126.4740983,"lat":34.9879067}];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+window.dealerMapState={data:d,statuses:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'mokpo',branchName:'목포지사',workKey:'work_20260824_184435',workName:'2026년 3분기 정기점검',completionPath:'completedStores/branches/mokpo/tasks/work_20260824_184435'};
+const S=window.dealerMapState;
+function navUrl(x){
+return 'nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Fcoca1440.github.io';
+}
+function infoHtml(x){
+const st=S.statuses[x.code];
+const done=!!(st&&st.done===true);
+let doneLine='';
+if(done){doneLine='<div class="doneLine">완료';if(st.by)doneLine+=' · '+esc(st.by);doneLine+='</div>';}
+return '<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+doneLine+'<a class="navbtn" href="'+navUrl(x)+'" target="_blank" rel="noopener">네이버지도 길찾기</a></div>';
+}
+const m=new naver.maps.Map('map',{center:new naver.maps.LatLng(d[0].lat,d[0].lng),zoom:14});
+S.map=m;
+const b=new naver.maps.LatLngBounds();
+d.forEach(x=>{
+const p=new naver.maps.LatLng(x.lat,x.lng);b.extend(p);
+const content='<div class="mk" data-code="'+esc(x.code)+'">'+esc(x.code)+'</div>';
+const mk=new naver.maps.Marker({map:m,position:p,icon:{content:content,anchor:new naver.maps.Point(0,0)}});
+const iw=new naver.maps.InfoWindow({content:'',borderWidth:0,pixelOffset:new naver.maps.Point(0,-12)});
+S.markers[x.code]=mk;S.infoWindows[x.code]=iw;
+naver.maps.Event.addListener(mk,'click',()=>{
+if(S.suppressClickCode===x.code){S.suppressClickCode=null;return;}
+if(S.opened)S.opened.close();
+iw.setContent(infoHtml(x));iw.open(m,mk);S.opened=iw;
+});
+});
+if(d.length>1)m.fitBounds(b);else m.setZoom(16);
+window.applyDealerStatuses=function(){
+let done=0;
+document.querySelectorAll('.mk[data-code]').forEach(el=>{
+const st=S.statuses[el.dataset.code];
+const isDone=!!(st&&st.done===true);
+el.classList.toggle('done',isDone);
+if(isDone)done++;
+});
+document.getElementById('doneCount').textContent=done;
+if(S.selectedCode&&window.refreshDealerModal)window.refreshDealerModal();
+if(document.getElementById('summaryModal').classList.contains('show'))document.getElementById('summaryBody').innerHTML=summaryHtml();
+};
+naver.maps.Event.addListener(m,'click',()=>{
+if(S.opened){S.opened.close();S.opened=null;}
+});
+</script>
+<script type="module">
+const S=window.dealerMapState;
+const syncState=document.getElementById('syncState');
+try{
+const [{initializeApp},{getAuth,signInAnonymously},{getDatabase,ref,onValue,set,remove,serverTimestamp}]=await Promise.all([
+import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js'),
+import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js'),
+import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js')
+]);
+const firebaseConfig={
+apiKey:'AIzaSyB9GCflO2QIwOMaPLZLkVCDq4gme8R-A4Q',
+authDomain:'dealer-map-status.firebaseapp.com',
+databaseURL:'https://dealer-map-status-default-rtdb.asia-southeast1.firebasedatabase.app',
+projectId:'dealer-map-status',
+appId:'1:967752424466:web:3464de3190a41f1b7c0ccb'
+};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getDatabase(app);
+await signInAnonymously(auth);
+S.firebaseReady=true;S.db=db;S.fb={ref,onValue,set,remove,serverTimestamp};
+syncState.textContent='실시간 연결됨';
+syncState.style.color='#168844';
+onValue(ref(db,S.completionPath),snap=>{
+S.statuses=snap.val()||{};
+window.applyDealerStatuses();
+});
+}catch(err){
+console.error('Firebase 연결 오류',err);
+syncState.textContent='실시간 연결 실패';
+syncState.style.color='#c0392b';
+}
+const byCode=Object.fromEntries(S.data.map(x=>[x.code,x]));
+const modal=document.getElementById('completeModal');
+const modalTitle=document.getElementById('modalTitle');
+const modalText=document.getElementById('modalText');
+const completeBtn=document.getElementById('completeBtn');
+const undoBtn=document.getElementById('undoBtn');
+const cancelBtn=document.getElementById('cancelBtn');
+const badge=document.getElementById('badge');
+const summaryModal=document.getElementById('summaryModal');
+const summaryBody=document.getElementById('summaryBody');
+const summaryClose=document.getElementById('summaryClose');
+window.refreshDealerModal=function(){
+const x=byCode[S.selectedCode];if(!x)return;
+const st=S.statuses[S.selectedCode];
+const done=!!(st&&st.done===true);
+modalTitle.textContent=x.code+' · '+x.name;
+let t=x.address+'\\n\\n현재 상태: '+(done?'완료':'미완료');
+if(done&&st.by)t+='\\n완료자: '+st.by;
+if(!S.firebaseReady)t+='\\n\\n※ 실시간 서버에 연결되지 않았습니다.';
+modalText.textContent=t;
+completeBtn.style.display=done?'none':'block';
+undoBtn.style.display=done?'block':'none';
+completeBtn.disabled=!S.firebaseReady;
+undoBtn.disabled=!S.firebaseReady;
+};
+function openModal(code){S.selectedCode=code;window.refreshDealerModal();modal.classList.add('show');}
+function closeModal(){modal.classList.remove('show');S.selectedCode=null;clearTextSelection();}
+function summaryHtml(){
+const doneList=[],todoList=[];
+S.data.forEach(x=>{const st=S.statuses[x.code];(st&&st.done===true?doneList:todoList).push(x);});
+doneList.sort((a,b)=>a.code.localeCompare(b.code));todoList.sort((a,b)=>a.code.localeCompare(b.code));
+const rows=list=>list.length?list.map(x=>'<button type="button" class="storeRow storeJump" data-code="'+esc(x.code)+'"><span class="storeCode">'+esc(x.code)+'</span>'+esc(x.name)+'</button>').join(''):'<div class="storeRow">없음</div>';
+return '<div class="summarySection"><div class="summaryTitle doneT">완료 '+doneList.length+'곳</div>'+rows(doneList)+'</div><div class="summarySection"><div class="summaryTitle todoT">미완료 '+todoList.length+'곳</div>'+rows(todoList)+'</div>';
+}
+function openSummary(){summaryBody.innerHTML=summaryHtml();summaryModal.classList.add('show');clearTextSelection();}
+function closeSummary(){summaryModal.classList.remove('show');clearTextSelection();}
+function jumpToStore(code){
+const x=byCode[code];const mk=S.markers[code];const iw=S.infoWindows[code];
+if(!x||!mk||!iw)return;
+closeSummary();
+if(S.opened)S.opened.close();
+const pos=mk.getPosition();
+S.map.setCenter(pos);
+if(S.map.getZoom()<17)S.map.setZoom(17);
+setTimeout(()=>{iw.setContent(infoHtml(x));iw.open(S.map,mk);S.opened=iw;},180);
+}
+function getWorkerName(){
+let n=localStorage.getItem('dealerWorkerName')||'';
+if(!n){n=(prompt('완료 처리할 직원 이름을 입력하세요.')||'').trim();if(n)localStorage.setItem('dealerWorkerName',n);}
+return n;
+}
+completeBtn.addEventListener('click',async()=>{
+if(!S.firebaseReady||!S.selectedCode)return;
+const by=getWorkerName();if(!by)return;
+const f=S.fb;
+await f.set(f.ref(S.db,S.completionPath+'/'+S.selectedCode),{done:true,by:by,updatedAt:f.serverTimestamp(),workName:S.workName});
+closeModal();
+});
+undoBtn.addEventListener('click',async()=>{
+if(!S.firebaseReady||!S.selectedCode)return;
+if(!confirm('이 판매점의 완료 표시를 해제하시겠습니까?'))return;
+const f=S.fb;
+await f.remove(f.ref(S.db,S.completionPath+'/'+S.selectedCode));
+closeModal();
+});
+cancelBtn.addEventListener('click',closeModal);
+modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+badge.addEventListener('click',e=>{e.stopPropagation();openSummary();});
+summaryClose.addEventListener('click',closeSummary);
+summaryBody.addEventListener('click',e=>{const row=e.target.closest?e.target.closest('.storeJump[data-code]'):null;if(row)jumpToStore(row.dataset.code);});
+summaryModal.addEventListener('click',e=>{if(e.target===summaryModal)closeSummary();});
+const mapEl=document.getElementById('map');
+let holdTimer=null,holdStartX=0,holdStartY=0;
+function clearTextSelection(){try{const s=window.getSelection();if(s&&s.removeAllRanges)s.removeAllRanges();}catch(e){}}
+mapEl.addEventListener('selectstart',e=>{const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(el)e.preventDefault();},true);
+mapEl.addEventListener('dragstart',e=>{const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(el)e.preventDefault();},true);
+mapEl.addEventListener('pointerdown',e=>{
+const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(!el)return;
+clearTextSelection();
+holdStartX=e.clientX;holdStartY=e.clientY;clearTimeout(holdTimer);
+const code=el.dataset.code;
+holdTimer=setTimeout(()=>{clearTextSelection();S.suppressClickCode=code;openModal(code);setTimeout(clearTextSelection,50);},700);
+},true);
+mapEl.addEventListener('pointermove',e=>{
+if(!holdTimer)return;const dx=e.clientX-holdStartX,dy=e.clientY-holdStartY;
+if(Math.sqrt(dx*dx+dy*dy)>12){clearTimeout(holdTimer);holdTimer=null;}
+},true);
+mapEl.addEventListener('pointerup',()=>{clearTimeout(holdTimer);holdTimer=null;},true);
+mapEl.addEventListener('pointercancel',()=>{clearTimeout(holdTimer);holdTimer=null;},true);
+mapEl.addEventListener('contextmenu',e=>{
+const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(!el)return;
+e.preventDefault();openModal(el.dataset.code);
+},true);
+</script>
+</body>
+</html>
