@@ -99,7 +99,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 window.dealerMapState={data:d,statuses:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'suncheon',branchName:'순천지사',workKey:'__LEGACY_ROOT__',workName:'기존 작업',completionPath:'completedStores'};
 const S=window.dealerMapState;
 function navUrl(x){
-return 'nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Flogisys-honam.github.io';
+return 'nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Fcoca1440.github.io';
 }
 function infoHtml(x){
 const st=S.statuses[x.code];
