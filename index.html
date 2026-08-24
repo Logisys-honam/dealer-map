@@ -9,7 +9,7 @@
 html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-serif}
 #badge{position:fixed;z-index:10;left:10px;top:10px;background:white;padding:8px 11px;border-radius:9px;box-shadow:0 2px 8px #777;font-size:13px}
 #syncState{margin-left:5px;font-size:11px;color:#666}
-.mk{background:#fff;border:2px solid #111;border-radius:6px;padding:3px 5px;font-weight:800;font-size:12px;white-space:nowrap;box-shadow:0 1px 4px #777;transform:translate(-50%,-100%)}
+.mk{background:#fff;border:2px solid #111;border-radius:6px;padding:3px 5px;font-weight:800;font-size:12px;white-space:nowrap;box-shadow:0 1px 4px #777;transform:translate(-50%,-100%);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .mk.done{background:#168844;color:#fff;border-color:#0e5c2d}
 .mk.done::after{content:' 완료';font-size:10px}
 .iw{padding:8px 10px;min-width:220px;font-size:13px;line-height:1.5}.iw b{font-size:15px}
@@ -139,7 +139,7 @@ completeBtn.disabled=!S.firebaseReady;
 undoBtn.disabled=!S.firebaseReady;
 };
 function openModal(code){S.selectedCode=code;window.refreshDealerModal();modal.classList.add('show');}
-function closeModal(){modal.classList.remove('show');S.selectedCode=null;}
+function closeModal(){modal.classList.remove('show');S.selectedCode=null;clearTextSelection();}
 function getWorkerName(){
 let n=localStorage.getItem('dealerWorkerName')||'';
 if(!n){n=(prompt('완료 처리할 직원 이름을 입력하세요.')||'').trim();if(n)localStorage.setItem('dealerWorkerName',n);}
@@ -163,11 +163,15 @@ cancelBtn.addEventListener('click',closeModal);
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 const mapEl=document.getElementById('map');
 let holdTimer=null,holdStartX=0,holdStartY=0;
+function clearTextSelection(){try{const s=window.getSelection();if(s&&s.removeAllRanges)s.removeAllRanges();}catch(e){}}
+mapEl.addEventListener('selectstart',e=>{const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(el)e.preventDefault();},true);
+mapEl.addEventListener('dragstart',e=>{const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(el)e.preventDefault();},true);
 mapEl.addEventListener('pointerdown',e=>{
 const el=e.target.closest?e.target.closest('.mk[data-code]'):null;if(!el)return;
+clearTextSelection();
 holdStartX=e.clientX;holdStartY=e.clientY;clearTimeout(holdTimer);
 const code=el.dataset.code;
-holdTimer=setTimeout(()=>{S.suppressClickCode=code;openModal(code);},700);
+holdTimer=setTimeout(()=>{clearTextSelection();S.suppressClickCode=code;openModal(code);setTimeout(clearTextSelection,50);},700);
 },true);
 mapEl.addEventListener('pointermove',e=>{
 if(!holdTimer)return;const dx=e.clientX-holdStartX,dy=e.clientY-holdStartY;
