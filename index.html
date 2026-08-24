@@ -29,6 +29,7 @@ const infoHtml='<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+e
 const iw=new naver.maps.InfoWindow({content:infoHtml,borderWidth:0,pixelOffset:new naver.maps.Point(0,-12)});
 naver.maps.Event.addListener(mk,'click',()=>{if(opened)opened.close();iw.open(m,mk);opened=iw;});
 });
+naver.maps.Event.addListener(m,'click',()=>{if(opened){opened.close();opened=null;}});
 if(d.length>1)m.fitBounds(b);else m.setZoom(16);
 </script>
 </body>
