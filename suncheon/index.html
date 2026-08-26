@@ -28,6 +28,9 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 #completeBtn{background:#168844;color:white}
 #undoBtn{background:#d9534f;color:white}
 #cancelBtn{background:#eee;color:#222}
+.fixedMemoWrap{display:none;margin-top:12px;padding:10px;border:1px solid #f0c36a;background:#fff8e8;border-radius:9px}
+.fixedMemoWrap.show{display:block}.fixedMemoTitle{font-size:12px;font-weight:900;color:#b45f00;margin-bottom:6px}.fixedMemoText{font-size:13px;line-height:1.5;color:#4d3300;white-space:pre-wrap;word-break:break-word}
+.fixedMemoActions{display:flex;gap:6px;margin-top:8px}.fixedMemoActions button{border:0;border-radius:6px;padding:6px 8px;font-size:11px;font-weight:800}.fixedEdit{background:#f59e0b;color:#fff}.fixedUnpin{background:#eee;color:#444}
 #noteInput{width:100%;box-sizing:border-box;min-height:92px;margin-top:12px;padding:10px;border:1px solid #cfd6e4;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical}
 .notePin{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:13px;color:#444}.notePin input{width:18px;height:18px}
 #noteSaveBtn{background:#f59e0b;color:#fff}
@@ -89,7 +92,8 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 <div class="modalBox">
 <div class="modalTitle" id="modalTitle"></div>
 <div class="modalText" id="modalText"></div>
-<textarea id="noteInput" maxlength="500" placeholder="예: 현재 휴무 · 16시부터 영업 / 담당자 연락 후 방문"></textarea>
+<div id="fixedMemoWrap" class="fixedMemoWrap"><div class="fixedMemoTitle">고정메모</div><div id="fixedMemoText" class="fixedMemoText"></div><div class="fixedMemoActions"><button type="button" id="fixedEditBtn" class="fixedEdit">고정메모 수정</button><button type="button" id="fixedUnpinBtn" class="fixedUnpin">고정 해제</button></div></div>
+<textarea id="noteInput" maxlength="500" placeholder="메모를 유지하고싶으면 체크해주세요, 체크없는 일반메모는 다음점검회차에 사라집니다."></textarea>
 <label class="notePin"><input type="checkbox" id="notePinned">다음 점검 회차에도 이 메모 유지</label>
 <div class="modalActions">
 <button type="button" id="noteSaveBtn">메모 저장</button>
@@ -109,17 +113,19 @@ const d=[{"code":"16010","name":"복권전문점 고흥","address":"전남 고�
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 window.dealerMapState={data:d,statuses:{},roundNotes:{},stickyNotes:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'suncheon',branchName:'순천지사',workKey:'work_20260825_000426',workName:'2026년 3분기 정기점검',completionPath:'completedStores/branches/suncheon/tasks/work_20260825_000426',notePath:'completedStores/branches/suncheon/notes/work_20260825_000426',stickyNotePath:'completedStores/branches/suncheon/stickyNotes'};
 const S=window.dealerMapState;
-function memoFor(code){const p=S.stickyNotes[code],r=S.roundNotes[code];if(p&&String(p.text||'').trim())return {text:String(p.text),pinned:true};if(r&&String(r.text||'').trim())return {text:String(r.text),pinned:false};return null;}
+function stickyMemoFor(code){const p=S.stickyNotes[code];return p&&String(p.text||'').trim()?{text:String(p.text),pinned:true}:null;}
+function roundMemoFor(code){const r=S.roundNotes[code];return r&&String(r.text||'').trim()?{text:String(r.text),pinned:false}:null;}
+function hasAnyMemo(code){return !!(stickyMemoFor(code)||roundMemoFor(code));}
 function navUrl(x){
 return 'nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Flogisys-honam.github.io';
 }
 function infoHtml(x){
 const st=S.statuses[x.code];
 const done=!!(st&&st.done===true);
-const memo=memoFor(x.code);
+const fixed=stickyMemoFor(x.code),round=roundMemoFor(x.code);
 let doneLine='';
 if(done){doneLine='<div class="doneLine">완료';if(st.by)doneLine+=' · '+esc(st.by);doneLine+='</div>';}
-let memoLine='';if(memo)memoLine='<div class="memoLine"><span class="memoTag">'+(memo.pinned?'고정메모':'메모')+'</span>'+esc(memo.text)+'</div>';
+let memoLine='';if(fixed)memoLine+='<div class="memoLine"><span class="memoTag">고정메모</span>'+esc(fixed.text)+'</div>';if(round)memoLine+='<div class="memoLine"><span class="memoTag">이번회차 메모</span>'+esc(round.text)+'</div>';
 return '<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+doneLine+memoLine+'<a class="navbtn" href="'+navUrl(x)+'" target="_blank" rel="noopener">네이버지도 길찾기</a></div>';
 }
 const m=new naver.maps.Map('map',{center:new naver.maps.LatLng(d[0].lat,d[0].lng),zoom:14});
@@ -143,7 +149,7 @@ let done=0;
 document.querySelectorAll('.mk[data-code]').forEach(el=>{
 const st=S.statuses[el.dataset.code];
 const isDone=!!(st&&st.done===true);
-const hasMemo=!!memoFor(el.dataset.code);
+const hasMemo=hasAnyMemo(el.dataset.code);
 el.classList.toggle('done',isDone);
 el.classList.toggle('hasmemo',hasMemo);
 if(isDone)done++;
@@ -255,6 +261,10 @@ const noteInput=document.getElementById('noteInput');
 const notePinned=document.getElementById('notePinned');
 const noteSaveBtn=document.getElementById('noteSaveBtn');
 const noteDeleteBtn=document.getElementById('noteDeleteBtn');
+const fixedMemoWrap=document.getElementById('fixedMemoWrap');
+const fixedMemoText=document.getElementById('fixedMemoText');
+const fixedEditBtn=document.getElementById('fixedEditBtn');
+const fixedUnpinBtn=document.getElementById('fixedUnpinBtn');
 const badge=document.getElementById('badge');
 const summaryModal=document.getElementById('summaryModal');
 const summaryBody=document.getElementById('summaryBody');
@@ -263,14 +273,15 @@ window.refreshDealerModal=function(){
 const x=byCode[S.selectedCode];if(!x)return;
 const st=S.statuses[S.selectedCode];
 const done=!!(st&&st.done===true);
-const memo=memoFor(S.selectedCode);
+const fixed=stickyMemoFor(S.selectedCode),round=roundMemoFor(S.selectedCode);
 modalTitle.textContent=x.code+' · '+x.name;
 let t=x.address+'\\n\\n현재 상태: '+(done?'완료':'미완료');
 if(done&&st.by)t+='\\n완료자: '+st.by;
 if(!S.firebaseReady)t+='\\n\\n※ 실시간 서버에 연결되지 않았습니다.';
 modalText.textContent=t;
-noteInput.value=memo?memo.text:'';notePinned.checked=!!(memo&&memo.pinned);
-noteDeleteBtn.style.display=memo?'block':'none';
+fixedMemoWrap.classList.toggle('show',!!fixed);fixedMemoText.textContent=fixed?fixed.text:'';
+noteInput.value=round?round.text:'';notePinned.checked=false;
+noteDeleteBtn.style.display=round?'block':'none';
 completeBtn.style.display=done?'none':'block';
 undoBtn.style.display=done?'block':'none';
 completeBtn.disabled=!S.firebaseReady;
@@ -282,7 +293,7 @@ function summaryHtml(){
 const doneList=[],todoList=[];
 S.data.forEach(x=>{const st=S.statuses[x.code];(st&&st.done===true?doneList:todoList).push(x);});
 doneList.sort((a,b)=>a.code.localeCompare(b.code));todoList.sort((a,b)=>a.code.localeCompare(b.code));
-const rows=list=>list.length?list.map(x=>{const m=memoFor(x.code);return '<button type="button" class="storeRow storeJump" data-code="'+esc(x.code)+'"><span class="storeCode">'+esc(x.code)+'</span>'+esc(x.name)+(m?' <span style="color:#d66b00;font-size:11px;font-weight:800">· 메모</span>':'')+'</button>';}).join(''):'<div class="storeRow">없음</div>';
+const rows=list=>list.length?list.map(x=>{const f=stickyMemoFor(x.code),r=roundMemoFor(x.code);let tag='';if(f)tag+=' <span style="color:#d66b00;font-size:11px;font-weight:800">· 고정메모</span>';if(r)tag+=' <span style="color:#d66b00;font-size:11px;font-weight:800">· 메모</span>';return '<button type="button" class="storeRow storeJump" data-code="'+esc(x.code)+'"><span class="storeCode">'+esc(x.code)+'</span>'+esc(x.name)+tag+'</button>';}).join(''):'<div class="storeRow">없음</div>';
 return '<div class="summarySection"><div class="summaryTitle doneT">완료 '+doneList.length+'곳</div>'+rows(doneList)+'</div><div class="summarySection"><div class="summaryTitle todoT">미완료 '+todoList.length+'곳</div>'+rows(todoList)+'</div>';
 }
 function openSummary(){summaryBody.innerHTML=summaryHtml();summaryModal.classList.add('show');clearTextSelection();}
@@ -300,15 +311,21 @@ setTimeout(()=>{iw.setContent(infoHtml(x));iw.open(S.map,mk);S.opened=iw;S.opene
 async function saveMemoForSelected(showAlert=false){
 if(!S.firebaseReady||!S.selectedCode)return false;
 const text=noteInput.value.trim(),pinned=notePinned.checked,f=S.fb,code=S.selectedCode;
-if(!text){await f.remove(f.ref(S.db,S.notePath+'/'+code));await f.remove(f.ref(S.db,S.stickyNotePath+'/'+code));if(showAlert)alert('메모가 삭제되었습니다.');return true;}
+if(!text){if(showAlert)alert('메모 내용을 입력하세요.');return false;}
 const payload={text:text,updatedAt:f.serverTimestamp()};
-if(pinned){await f.set(f.ref(S.db,S.stickyNotePath+'/'+code),payload);await f.remove(f.ref(S.db,S.notePath+'/'+code));}else{await f.set(f.ref(S.db,S.notePath+'/'+code),payload);await f.remove(f.ref(S.db,S.stickyNotePath+'/'+code));}
+if(pinned){await f.set(f.ref(S.db,S.stickyNotePath+'/'+code),payload);}else{await f.set(f.ref(S.db,S.notePath+'/'+code),payload);}
 if(showAlert)alert(pinned?'고정 메모로 저장했습니다.':'현재 점검 회차 메모로 저장했습니다.');return true;
 }
 async function deleteMemoForSelected(){
 if(!S.firebaseReady||!S.selectedCode)return;
-if(!confirm('이 판매점의 메모를 삭제하시겠습니까?'))return;
-const f=S.fb,code=S.selectedCode;await f.remove(f.ref(S.db,S.notePath+'/'+code));await f.remove(f.ref(S.db,S.stickyNotePath+'/'+code));noteInput.value='';notePinned.checked=false;
+if(!confirm('현재 점검 회차의 일반 메모를 삭제하시겠습니까?'))return;
+const f=S.fb,code=S.selectedCode;await f.remove(f.ref(S.db,S.notePath+'/'+code));noteInput.value='';notePinned.checked=false;
+}
+function editFixedMemo(){const fixed=stickyMemoFor(S.selectedCode);if(!fixed)return;noteInput.value=fixed.text;notePinned.checked=true;noteInput.focus();}
+async function unpinFixedMemo(){
+const fixed=stickyMemoFor(S.selectedCode);if(!fixed||!S.firebaseReady)return;
+if(!confirm('고정을 해제할까요?\n현재 회차 일반 메모로 옮겨지고 다음 점검 회차부터는 사라집니다.'))return;
+const f=S.fb,code=S.selectedCode;await f.set(f.ref(S.db,S.notePath+'/'+code),{text:fixed.text,updatedAt:f.serverTimestamp()});await f.remove(f.ref(S.db,S.stickyNotePath+'/'+code));
 }
 function getWorkerName(){
 let n=localStorage.getItem('dealerWorkerName')||'';
@@ -331,7 +348,9 @@ const f=S.fb;
 await f.remove(f.ref(S.db,S.completionPath+'/'+S.selectedCode));
 closeModal();
 });
-noteSaveBtn.addEventListener('click',async()=>{try{await saveMemoForSelected(true);window.applyDealerStatuses();window.refreshDealerModal();}catch(err){console.error(err);alert('메모 저장 중 오류가 발생했습니다.');}});
+noteSaveBtn.addEventListener('click',async()=>{try{const ok=await saveMemoForSelected(true);if(ok){noteInput.value='';notePinned.checked=false;}window.applyDealerStatuses();window.refreshDealerModal();}catch(err){console.error(err);alert('메모 저장 중 오류가 발생했습니다.');}});
+fixedEditBtn.addEventListener('click',editFixedMemo);
+fixedUnpinBtn.addEventListener('click',async()=>{try{await unpinFixedMemo();window.applyDealerStatuses();window.refreshDealerModal();}catch(err){console.error(err);alert('고정 해제 중 오류가 발생했습니다.');}});
 noteDeleteBtn.addEventListener('click',async()=>{try{await deleteMemoForSelected();window.applyDealerStatuses();window.refreshDealerModal();}catch(err){console.error(err);alert('메모 삭제 중 오류가 발생했습니다.');}});
 cancelBtn.addEventListener('click',closeModal);
 modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
