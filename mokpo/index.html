@@ -7,7 +7,7 @@
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=7qlkzlucix"></script>
 <style>
 html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-serif}
-#badge{position:fixed;z-index:10;left:10px;top:10px;background:white;padding:8px 11px;border-radius:9px;box-shadow:0 2px 8px #777;font-size:13px;cursor:pointer;user-select:none;-webkit-user-select:none}
+#badge{position:fixed;z-index:10;left:10px;top:10px;max-width:calc(100vw - 86px);box-sizing:border-box;background:white;padding:8px 11px;border-radius:9px;box-shadow:0 2px 8px #777;font-size:13px;cursor:pointer;user-select:none;-webkit-user-select:none}
 #syncState{margin-left:5px;font-size:11px;color:#666}
 .mk{position:relative;background:#fff;border:2px solid #111;border-radius:6px;padding:3px 5px;font-weight:800;font-size:12px;white-space:nowrap;box-shadow:0 1px 4px #777;transform:translate(-50%,-100%);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .mk.done{background:#168844;color:#fff;border-color:#0e5c2d}
@@ -56,19 +56,41 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 .loginBox input{width:100%;box-sizing:border-box;height:46px;border:1px solid #cfd6e4;border-radius:9px;padding:0 12px;font-size:15px}
 #loginBtn{width:100%;height:48px;margin-top:16px;border:0;border-radius:9px;background:#2347bd;color:#fff;font-size:15px;font-weight:900}
 #loginMsg{min-height:20px;margin-top:10px;font-size:13px;color:#c0392b;line-height:1.4}
-#accountBar{position:fixed;z-index:20;right:10px;top:10px;display:none;background:#fff;border-radius:9px;padding:7px 9px;box-shadow:0 2px 8px #999;font-size:11px}
+#accountBar{position:fixed;z-index:25;right:10px;top:61px;display:none;background:#fff;border-radius:12px;padding:12px;box-shadow:0 3px 16px #7778;font-size:12px;min-width:170px;max-width:calc(100vw - 20px);box-sizing:border-box}
 #accountBar.show{display:block}
-#accountBar button{border:0;background:#eef2f7;border-radius:6px;padding:5px 7px;margin-left:4px;font-size:11px;font-weight:700}
+#accountBar button{display:block;width:100%;border:0;background:#eef2f7;border-radius:6px;padding:10px;margin:7px 0 0;font-size:12px;font-weight:700;text-align:left}
 #pwModal{position:fixed;z-index:10000;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px}
 #pwModal.show{display:flex}
 .pwBox{width:min(380px,100%);background:#fff;border-radius:14px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .pwBox h3{margin:0 0 12px;font-size:18px}.pwBox input{width:100%;box-sizing:border-box;height:44px;margin:5px 0;border:1px solid #ccd3df;border-radius:8px;padding:0 10px}
 .pwActions{display:flex;gap:8px;margin-top:12px}.pwActions button{flex:1;height:42px;border:0;border-radius:8px;font-weight:800}.pwSave{background:#2347bd;color:#fff}.pwCancel{background:#eee;color:#222}
+#routeSettings{position:fixed;right:10px;top:10px;z-index:24;background:white;border:0;border-radius:10px;width:44px;height:44px;padding:7px;box-shadow:0 2px 9px #999;display:none;align-items:center;justify-content:center;cursor:pointer}#routeSettings.show{display:flex}#routeSettings svg{width:23px;height:23px;fill:none;stroke:#222;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}@media(max-width:640px){#badge{font-size:11px;padding:7px;max-width:calc(100vw - 76px)}#routeSettings{width:42px;height:42px}#accountBar{top:58px}}
+#routeOverlay{display:none;position:fixed;inset:0;z-index:200;background:#0008;align-items:center;justify-content:center;padding:14px}
+#routeOverlay.open{display:flex}
+#routePanel{background:white;color:#222;padding:19px;border-radius:16px;width:min(360px,96vw);box-sizing:border-box;max-height:85vh;overflow:auto}
+#routePanel h3{margin:0 0 12px}
+.routeOption{display:block;padding:10px;border-bottom:1px solid #eee}
+.routeButtons{display:flex;gap:8px;margin-top:15px}
+.routeButtons button{flex:1;padding:11px;border:0;border-radius:8px;font-weight:bold}
+#routeOnce{background:#ededed;color:#222}#routeAlways{background:#2563eb;color:white}
+#routeChange{margin-top:8px;width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;background:white}
 </style>
 </head>
 <body>
 <div id="badge"><div style="font-weight:800;margin-bottom:2px">목포지사 · 2026년 4분기 정기점검</div><b>18</b>개 판매점 · 완료 <b id="doneCount">0</b>곳 <span id="syncState">연결 준비중</span></div>
 <div id="map"></div>
+<button type="button" id="routeSettings" onclick="toggleMapSettings()" aria-label="설정" title="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.25v2.1m0 13.3v2.1M3.25 12h2.1m13.3 0h2.1M5.8 5.8l1.5 1.5m9.4 9.4 1.5 1.5M18.2 5.8l-1.5 1.5M7.3 16.7l-1.5 1.5"/><circle cx="12" cy="12" r="4.1"/></svg></button>
+<div id="routeOverlay" role="dialog" aria-modal="true"><div id="routePanel">
+<h3 id="routeHeading">길찾기 앱 선택</h3><div id="routeChoices">
+<label class="routeOption"><input type="radio" name="routeApp" value="naver" checked> 네이버 지도</label>
+<label class="routeOption"><input type="radio" name="routeApp" value="tmap"> 티맵</label>
+<label class="routeOption"><input type="radio" name="routeApp" value="kakao"> 카카오맵</label>
+<label class="routeOption"><input type="radio" name="routeApp" value="google"> 구글 지도</label>
+</div><div class="routeButtons"><button id="routeOnce" type="button" onclick="routeChoose(false)">이번만 사용</button><button id="routeAlways" type="button" onclick="routeChoose(true)">항상 사용</button></div>
+<button type="button" id="routeChange" onclick="routeReset()">기본 앱 초기화 / 다시 선택</button>
+<button type="button" id="routeChange" onclick="routeClose()">닫기</button>
+<p style="font-size:12px;color:#555">항상 사용은 이 브라우저에만 저장됩니다. 설치되지 않은 앱은 실행되지 않을 수 있습니다.</p>
+</div></div>
 <div id="authGate">
 <div class="loginBox">
 <div class="loginTitle">목포지사 판매점 지도</div>
@@ -80,7 +102,7 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 <button id="loginBtn" type="button">지도 열기</button>
 <div id="loginMsg"></div>
 </div></div>
-<div id="accountBar"><span id="accountName"></span><button type="button" id="pwBtn">비밀번호 변경</button><button type="button" id="logoutBtn">로그아웃</button></div>
+<div id="accountBar"><div style="font-weight:800;margin-bottom:9px">지도 설정</div><div id="accountName" style="font-size:11px;color:#777;margin-bottom:5px"></div><button type="button" onclick="routeOpenSettings();closeMapSettings()">길찾기 기본 앱 변경</button><button type="button" id="pwBtn">비밀번호 변경</button><button type="button" id="logoutBtn">로그아웃</button><button type="button" onclick="closeMapSettings()">닫기</button></div>
 <div id="pwModal"><div class="pwBox">
 <h3>비밀번호 변경</h3>
 <input id="newPw1" type="password" placeholder="새 비밀번호 (6자 이상)">
@@ -111,14 +133,26 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 <script>
 const d=[{"code":"14753","name":"삼호복권방","address":"전라남도 영암군 삼호읍신항로 76","lng":126.3797978,"lat":34.7460603},{"code":"14810","name":"복권천국","address":"전라남도 목포시 비파로 29","lng":126.4276770,"lat":34.8013989},{"code":"15483","name":"도깨비방망이","address":"전라남도 완도군 장보고대로 220","lng":126.7491711,"lat":34.3160832},{"code":"19424","name":"복권세상","address":"전라남도 목포시 영산로270번길 2","lng":126.3955442,"lat":34.8037487},{"code":"21373","name":"알리바이 인정해남점","address":"전라남도 해남군 해남읍 영빈로 79-18, 상가동 101호","lng":126.6092732,"lat":34.5654077},{"code":"25542","name":"대불마트","address":"전라남도 영암군 삼호읍 대불주거7로 3","lng":126.4553493,"lat":34.7559555},{"code":"25804","name":"알라딘","address":"전라남도 무안군 면성1길 113","lng":126.4740973,"lat":34.9879057},{"code":"40516","name":"대불로또판매점","address":"전라남도 영암군 대불주거1로9길 3","lng":126.4554448,"lat":34.7515784},{"code":"40517","name":"효자마트","address":"전라남도 진도군 진도읍 동외1길 8","lng":126.2692198,"lat":34.4812765},{"code":"40603","name":"해남청용점","address":"전라남도 해남군 청용길 31","lng":126.3285934,"lat":34.6681027},{"code":"41184","name":"해남복권방","address":"전라남도 해남군 해남읍 남동천길 2","lng":126.5974256,"lat":34.5694819},{"code":"41185","name":"기찬복권방","address":"전라남도 영암군 삼호읍 삼호중앙로 203","lng":126.4729869,"lat":34.7455291},{"code":"41189","name":"금호동행복권","address":"전라남도 영암군 삼호읍 대불주거로 159","lng":126.4572971,"lat":34.7528215},{"code":"41528","name":"헤이미쉬","address":"전라남도 무안군 삼향읍 남악3로 55. 132호","lng":126.4597712,"lat":34.8103661},{"code":"41555","name":"영암현대삼호점","address":"전라남도 영암군 삼호읍 신항로 135-29","lng":126.3707439,"lat":34.7479477},{"code":"41966","name":"행운복권","address":"전라남도 무안군 영산로 1693","lng":126.4296367,"lat":34.9097534},{"code":"42293","name":"행운가득","address":"전라남도 무안군 삼향읍 남악5로48번길 27-1","lng":126.4742896,"lat":34.8092685},{"code":"42297","name":"독천로또","address":"전라남도 영암군 학산면 영산로 27","lng":126.5676860,"lat":34.7256881}];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-window.dealerMapState={data:d,statuses:{},roundNotes:{},stickyNotes:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'mokpo',branchName:'목포지사',workKey:'work_20261013_184313',workName:'2026년 4분기 정기점검',completionPath:'completedStores/branches/mokpo/tasks/work_20261013_184313',notePath:'completedStores/branches/mokpo/notes/work_20261013_184313',stickyNotePath:'completedStores/branches/mokpo/stickyNotes'};
+window.dealerMapState={data:d,statuses:{},roundNotes:{},stickyNotes:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'mokpo',branchName:'목포지사',workKey:'work_20261013_220147',workName:'2026년 4분기 정기점검',completionPath:'completedStores/branches/mokpo/tasks/work_20261013_220147',notePath:'completedStores/branches/mokpo/notes/work_20261013_220147',stickyNotePath:'completedStores/branches/mokpo/stickyNotes'};
 const S=window.dealerMapState;
 function stickyMemoFor(code){const p=S.stickyNotes[code];return p&&String(p.text||'').trim()?{text:String(p.text),pinned:true}:null;}
 function roundMemoFor(code){const r=S.roundNotes[code];return r&&String(r.text||'').trim()?{text:String(r.text),pinned:false}:null;}
 function hasAnyMemo(code){return !!(stickyMemoFor(code)||roundMemoFor(code));}
-function navUrl(x){
-return 'nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Flogisys-honam.github.io';
-}
+const ROUTE_PREF_KEY='dealerMapPreferredRouteV1';
+let routeTarget=null;
+function routeSaved(){try{return localStorage.getItem(ROUTE_PREF_KEY)||'';}catch(e){return '';}}
+function routeStore(v){try{if(v)localStorage.setItem(ROUTE_PREF_KEY,v);else localStorage.removeItem(ROUTE_PREF_KEY);}catch(e){}}
+function routeClose(){document.getElementById('routeOverlay').classList.remove('open');}
+function routePanel(target,settings){routeTarget=target||null;document.getElementById('routeHeading').textContent=settings?'기본 길찾기 앱 설정':'길찾기 앱 선택';let p=routeSaved()||'naver';let inp=document.querySelector('input[name=routeApp][value='+p+']');if(inp)inp.checked=true;document.getElementById('routeOverlay').classList.add('open');}
+function routeOpenSettings(){routePanel(null,true);}
+function toggleMapSettings(){document.getElementById('accountBar').classList.toggle('show');}function closeMapSettings(){document.getElementById('accountBar').classList.remove('show');}
+function routeReset(){routeStore('');document.querySelector('input[name=routeApp][value=naver]').checked=true;document.getElementById('routeHeading').textContent='기본 앱 초기화 완료';}
+function routeStart(code){let x=S.data.find(q=>String(q.code)===String(code));if(!x){alert('판매점 정보를 찾지 못했습니다.');return false;}let saved=routeSaved();if(saved){routeLaunch(saved,x);}else{routePanel(x,false);}return false;}
+function routeChoose(always){let a=document.querySelector('input[name=routeApp]:checked');if(!a)return;let app=a.value;if(always)routeStore(app);let x=routeTarget;routeClose();if(x)routeLaunch(app,x);}
+function routeLaunch(app,x){const lat=Number(x.lat),lng=Number(x.lng),name=String(x.name||'판매점');if(!Number.isFinite(lat)||!Number.isFinite(lng)){alert('목적지 좌표가 없습니다.');return;}const label=encodeURIComponent(name);const pc=!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);let url='';
+if(pc){if(app==='naver')url='https://map.naver.com/p/search/'+label;else if(app==='kakao')url='https://map.kakao.com/link/to/'+label+','+lat+','+lng;else if(app==='tmap'){alert('티맵 길안내는 휴대폰에서 실행해 주세요. PC에서는 카카오맵 길찾기를 엽니다.');url='https://map.kakao.com/link/to/'+label+','+lat+','+lng;
+}else url='https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng;window.open(url,'_blank','noopener');return;}if(app==='naver')url='nmap://navigation?dlat='+lat+'&dlng='+lng+'&dname='+label+'&appname=https%3A%2F%2Flogisys-honam.github.io';else if(app==='tmap')url='tmap://route?goalname='+label+'&goalx='+lng+'&goaly='+lat;
+else if(app==='kakao')url='kakaomap://route?ep='+lat+','+lng+'&by=CAR';else url='https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng;if(app==='google')window.open(url,'_blank','noopener');else window.location.href=url;}
 function infoHtml(x){
 const st=S.statuses[x.code];
 const done=!!(st&&st.done===true);
@@ -126,7 +160,7 @@ const fixed=stickyMemoFor(x.code),round=roundMemoFor(x.code);
 let doneLine='';
 if(done){doneLine='<div class="doneLine">완료';if(st.by)doneLine+=' · '+esc(st.by);doneLine+='</div>';}
 let memoLine='';if(fixed)memoLine+='<div class="memoLine"><span class="memoTag">고정메모</span>'+esc(fixed.text)+'</div>';if(round)memoLine+='<div class="memoLine"><span class="memoTag">이번회차 메모</span>'+esc(round.text)+'</div>';
-return '<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+doneLine+memoLine+'<a class="navbtn" href="'+navUrl(x)+'" target="_blank" rel="noopener">네이버지도 길찾기</a></div>';
+return '<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+doneLine+memoLine+'<a class="navbtn" href="#" onclick="return routeStart(&quot;'+esc(x.code)+'&quot;)">길찾기 앱 선택</a></div>';
 }
 const m=new naver.maps.Map('map',{center:new naver.maps.LatLng(d[0].lat,d[0].lng),zoom:14});
 S.map=m;
@@ -203,7 +237,7 @@ await F.signOut(auth);return;
 S.firebaseReady=true;S.db=db;S.fb={ref:F.ref,onValue:F.onValue,set:F.set,remove:F.remove,serverTimestamp:F.serverTimestamp};
 S.currentUser=user;
 authGate.classList.add('hidden');
-accountBar.classList.add('show');
+document.getElementById('routeSettings').classList.add('show');accountBar.classList.remove('show');
 accountName.textContent=S.branchName;
 syncState.textContent='실시간 연결됨';syncState.style.color='#168844';
 if(unsubscribeStatus)unsubscribeStatus();if(unsubscribeNotes)unsubscribeNotes();if(unsubscribeSticky)unsubscribeSticky();
@@ -236,10 +270,10 @@ try{await signInWithEmailAndPassword(auth,e,p);loginPassword.value='';}catch(err
 });
 loginPassword.addEventListener('keydown',e=>{if(e.key==='Enter')loginBtn.click();});
 onAuthStateChanged(auth,async user=>{
-if(user){await activateUser(user);}else{S.firebaseReady=false;S.currentUser=null;S.statuses={};S.roundNotes={};S.stickyNotes={};window.applyDealerStatuses();authGate.classList.remove('hidden');accountBar.classList.remove('show');syncState.textContent='로그인 필요';syncState.style.color='#c0392b';}
+if(user){await activateUser(user);}else{S.firebaseReady=false;S.currentUser=null;S.statuses={};S.roundNotes={};S.stickyNotes={};window.applyDealerStatuses();authGate.classList.remove('hidden');accountBar.classList.remove('show');document.getElementById('routeSettings').classList.remove('show');syncState.textContent='로그인 필요';syncState.style.color='#c0392b';}
 });
-logoutBtn.addEventListener('click',async()=>{if(unsubscribeStatus){unsubscribeStatus();unsubscribeStatus=null;}if(unsubscribeNotes){unsubscribeNotes();unsubscribeNotes=null;}if(unsubscribeSticky){unsubscribeSticky();unsubscribeSticky=null;}await signOut(auth);});
-pwBtn.addEventListener('click',()=>{newPw1.value='';newPw2.value='';pwMsg.textContent='';pwModal.classList.add('show');});
+logoutBtn.addEventListener('click',async()=>{closeMapSettings();if(unsubscribeStatus){unsubscribeStatus();unsubscribeStatus=null;}if(unsubscribeNotes){unsubscribeNotes();unsubscribeNotes=null;}if(unsubscribeSticky){unsubscribeSticky();unsubscribeSticky=null;}await signOut(auth);});
+pwBtn.addEventListener('click',()=>{closeMapSettings();newPw1.value='';newPw2.value='';pwMsg.textContent='';pwModal.classList.add('show');});
 pwCancel.addEventListener('click',()=>pwModal.classList.remove('show'));
 pwModal.addEventListener('click',e=>{if(e.target===pwModal)pwModal.classList.remove('show');});
 pwSave.addEventListener('click',async()=>{
