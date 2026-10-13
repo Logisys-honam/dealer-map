@@ -64,11 +64,33 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 .pwBox{width:min(380px,100%);background:#fff;border-radius:14px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .pwBox h3{margin:0 0 12px;font-size:18px}.pwBox input{width:100%;box-sizing:border-box;height:44px;margin:5px 0;border:1px solid #ccd3df;border-radius:8px;padding:0 10px}
 .pwActions{display:flex;gap:8px;margin-top:12px}.pwActions button{flex:1;height:42px;border:0;border-radius:8px;font-weight:800}.pwSave{background:#2347bd;color:#fff}.pwCancel{background:#eee;color:#222}
+#routeSettings{position:fixed;right:12px;top:12px;z-index:21;background:white;border:0;border-radius:10px;padding:10px 13px;box-shadow:0 2px 9px #999;font-weight:bold}
+#routeOverlay{display:none;position:fixed;inset:0;z-index:200;background:#0008;align-items:center;justify-content:center;padding:14px}
+#routeOverlay.open{display:flex}
+#routePanel{background:white;color:#222;padding:19px;border-radius:16px;width:min(360px,96vw);box-sizing:border-box;max-height:85vh;overflow:auto}
+#routePanel h3{margin:0 0 12px}
+.routeOption{display:block;padding:10px;border-bottom:1px solid #eee}
+.routeButtons{display:flex;gap:8px;margin-top:15px}
+.routeButtons button{flex:1;padding:11px;border:0;border-radius:8px;font-weight:bold}
+#routeOnce{background:#ededed;color:#222}#routeAlways{background:#2563eb;color:white}
+#routeChange{margin-top:8px;width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;background:white}
 </style>
 </head>
 <body>
-<div id="badge"><div style="font-weight:800;margin-bottom:2px">순천지사 · 2026년 4분기 정기점검</div><b>44</b>개 판매점 · 완료 <b id="doneCount">0</b>곳 <span id="syncState">연결 준비중</span></div>
+<div id="badge"><div style="font-weight:800;margin-bottom:2px">순천지사 · 2026년 3분기 정기점검</div><b>44</b>개 판매점 · 완료 <b id="doneCount">0</b>곳 <span id="syncState">연결 준비중</span></div>
 <div id="map"></div>
+<button type="button" id="routeSettings" onclick="routeOpenSettings()">? 길찾기 설정</button>
+<div id="routeOverlay" role="dialog" aria-modal="true"><div id="routePanel">
+<h3 id="routeHeading">길찾기 앱 선택</h3><div id="routeChoices">
+<label class="routeOption"><input type="radio" name="routeApp" value="naver" checked> 네이버 지도</label>
+<label class="routeOption"><input type="radio" name="routeApp" value="tmap"> 티맵</label>
+<label class="routeOption"><input type="radio" name="routeApp" value="kakao"> 카카오맵</label>
+<label class="routeOption"><input type="radio" name="routeApp" value="google"> 구글 지도</label>
+</div><div class="routeButtons"><button id="routeOnce" type="button" onclick="routeChoose(false)">이번만 사용</button><button id="routeAlways" type="button" onclick="routeChoose(true)">항상 사용</button></div>
+<button type="button" id="routeChange" onclick="routeReset()">기본 앱 초기화 / 다시 선택</button>
+<button type="button" id="routeChange" onclick="routeClose()">닫기</button>
+<p style="font-size:12px;color:#555">항상 사용은 이 브라우저에만 저장됩니다. 설치되지 않은 앱은 실행되지 않을 수 있습니다.</p>
+</div></div>
 <div id="authGate">
 <div class="loginBox">
 <div class="loginTitle">순천지사 판매점 지도</div>
@@ -104,21 +126,29 @@ html,body,#map{width:100%;height:100%;margin:0;font-family:'Malgun Gothic',sans-
 </div></div></div>
 <div id="summaryModal">
 <div class="summaryBox">
-<div class="summaryHead">순천지사 · 판매점 진행 현황 · 2026년 4분기 정기점검</div>
+<div class="summaryHead">순천지사 · 판매점 진행 현황 · 2026년 3분기 정기점검</div>
 <div class="summaryBody" id="summaryBody"></div>
 <div class="summaryFoot"><button type="button" id="summaryClose">닫기</button></div>
 </div></div>
 <script>
 const d=[{"code":"13838","name":"복권왕국","address":"전라남도 여수시 화산로 134","lng":127.6511384,"lat":34.7772282},{"code":"14699","name":"복권왕국","address":"전라남도 여수시 여수산단로 48, 1층 101호(봉계동)","lng":127.6643324,"lat":34.7885632},{"code":"15293","name":"복권나라(여수교동)","address":"전라남도 여수시 중앙로 62","lng":127.7343402,"lat":34.7399270},{"code":"15295","name":"복권나라(학동)","address":"전라남도 여수시 흥국로 6","lng":127.6634759,"lat":34.7635695},{"code":"18094","name":"복권나라","address":"전라남도 순천시 해룡면 신대로 97, 상가 109호","lng":127.5468894,"lat":34.9328427},{"code":"18096","name":"노다지복권방","address":"전라남도 여수시 봉산1로 11-1","lng":127.7219880,"lat":34.7325772},{"code":"18624","name":"복권천지","address":"전라남도 여수시 흥국로 79","lng":127.6711718,"lat":34.7619584},{"code":"18748","name":"천하명당","address":"전라남도 여수시 망마로 107","lng":127.6740305,"lat":34.7572002},{"code":"18749","name":"복권천국","address":"전라남도 여수시 선소로 62","lng":127.6674182,"lat":34.7581428},{"code":"19415","name":"복권나라 동성점","address":"전라남도 순천시 연향번영길 94","lng":127.5190748,"lat":34.9502325},{"code":"19427","name":"거기마트","address":"전라남도 여수시 좌수영로 440","lng":127.7018034,"lat":34.7669744},{"code":"20839","name":"제이스테이션(여서)","address":"전라남도 여수시 문수로 118(여서동)","lng":127.7075267,"lat":34.7552182},{"code":"21598","name":"월마트","address":"전라남도 여수시 미평로 68","lng":127.7090493,"lat":34.7688836},{"code":"21602","name":"나이스스포츠토토","address":"전라남도 여수시 이순신광장로 210","lng":127.7451823,"lat":34.7396809},{"code":"21755","name":"대박찬스","address":"전라남도 여수시 문수로 159-1","lng":127.7102352,"lat":34.7582545},{"code":"22139","name":"현아비디오로또","address":"전라남도 순천시 풍덕주택길 90","lng":127.5037913,"lat":34.9399985},{"code":"22141","name":"서부수퍼","address":"전라남도 여수시 좌수영로 14","lng":127.7281496,"lat":34.7414725},{"code":"22805","name":"화이트마트","address":"전라남도 여수시 동문로 90-1","lng":127.7420332,"lat":34.7446784},{"code":"23314","name":"토토편의점","address":"전라남도 여수시 문수로 9","lng":127.6988071,"lat":34.7494147},{"code":"25233","name":"대박나라","address":"전라남도 여수시 여문1로 52","lng":127.7044826,"lat":34.7533616},{"code":"26873","name":"올할인마트","address":"전라남도 여수시 만성로 22-1","lng":127.6984587,"lat":34.7692077},{"code":"26956","name":"순천인제점","address":"전라남도 순천시 장평로 43","lng":127.4937855,"lat":34.9437809},{"code":"28011","name":"정남진 동산유통","address":"전라남도 장흥군 동교3길 15 의 1","lng":126.9067112,"lat":34.6802800},{"code":"28463","name":"우일슈퍼","address":"전라남도 순천시 팔마로 13","lng":127.4898246,"lat":34.9468619},{"code":"29352","name":"CU 장흥회진점","address":"전라남도 장흥군 회진면 회진로 435-1","lng":126.9401315,"lat":34.4844527},{"code":"40439","name":"새생활마트","address":"전라남도 순천시 남산로 20","lng":127.4906213,"lat":34.9395975},{"code":"40861","name":"해빛 편의점","address":"전라남도 여수시 돌산읍 강남로 44","lng":127.7506025,"lat":34.7194479},{"code":"41065","name":"죽림 복권 판매점","address":"전라남도 여수시 소라면 죽림중앙로 4","lng":127.6359449,"lat":34.7611584},{"code":"41188","name":"금당로또복권","address":"전라남도 순천시 대석길 8(연향동)","lng":127.5235550,"lat":34.9455959},{"code":"41347","name":"돈벼락 복권판매점","address":"전라남도 여수시 대교로 21","lng":127.7238322,"lat":34.7360003},{"code":"41512","name":"승진통신","address":"전라남도 여수시 여서1로 13","lng":127.7007575,"lat":34.7497271},{"code":"41514","name":"일등돼지로또","address":"전라남도 순천시 해룡면 평화길 30, 2호","lng":127.5434341,"lat":34.9429216},{"code":"41707","name":"1등복권","address":"전라남도 순천시 장평로 20","lng":127.4939983,"lat":34.9414981},{"code":"41842","name":"세븐일레븐 여수이마트점","address":"전라남도 여수시 오림4길 45","lng":127.7156888,"lat":34.7577170},{"code":"41890","name":"코리아세븐 순천역전점","address":"전라남도 순천시 팔마로 116","lng":127.5009159,"lat":34.9456386},{"code":"41967","name":"누리복권","address":"전라남도 여수시 성산로 85","lng":127.6458761,"lat":34.7766496},{"code":"42306","name":"씨스페이스 드림복권방점","address":"전라남도 순천시 율산2길 14-0 1층(연향동)","lng":127.5271026,"lat":34.9412768},{"code":"42307","name":"홈런복권","address":"전라남도 여수시 무선로 115-1","lng":127.6546488,"lat":34.7713867},{"code":"42308","name":"여수대박복권","address":"전라남도 여수시 돌산읍 강남9길 24","lng":127.7527939,"lat":34.7188490},{"code":"42473","name":"천하명당 복권방","address":"전라남도 순천시 해룡면 장선배기길 158","lng":127.5298694,"lat":34.9511724},{"code":"42618","name":"피스톤스포츠","address":"전라남도 여수시 쌍봉로 43-1","lng":127.6609193,"lat":34.7667225},{"code":"42649","name":"씨스페이스24여천신기점","address":"전라남도 여수시 신기남1길 23-1","lng":127.6692881,"lat":34.7591891},{"code":"42650","name":"청룡복권방","address":"전라남도 여수시 신월로 706","lng":127.7194861,"lat":34.7334810},{"code":"42651","name":"낭만로또","address":"전라남도 여수시 진남상가길 43","lng":127.7321973,"lat":34.7410268}];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-window.dealerMapState={data:d,statuses:{},roundNotes:{},stickyNotes:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'suncheon',branchName:'순천지사',workKey:'work_20261013_184123',workName:'2026년 4분기 정기점검',completionPath:'completedStores/branches/suncheon/tasks/work_20261013_184123',notePath:'completedStores/branches/suncheon/notes/work_20261013_184123',stickyNotePath:'completedStores/branches/suncheon/stickyNotes'};
+window.dealerMapState={data:d,statuses:{},roundNotes:{},stickyNotes:{},opened:null,selectedCode:null,markers:{},infoWindows:{},firebaseReady:false,branchCode:'suncheon',branchName:'순천지사',workKey:'work_20260825_000426',workName:'2026년 3분기 정기점검',completionPath:'completedStores/branches/suncheon/tasks/work_20260825_000426',notePath:'completedStores/branches/suncheon/notes/work_20260825_000426',stickyNotePath:'completedStores/branches/suncheon/stickyNotes'};
 const S=window.dealerMapState;
 function stickyMemoFor(code){const p=S.stickyNotes[code];return p&&String(p.text||'').trim()?{text:String(p.text),pinned:true}:null;}
 function roundMemoFor(code){const r=S.roundNotes[code];return r&&String(r.text||'').trim()?{text:String(r.text),pinned:false}:null;}
 function hasAnyMemo(code){return !!(stickyMemoFor(code)||roundMemoFor(code));}
-function navUrl(x){
-return 'nmap://navigation?dlat='+encodeURIComponent(x.lat)+'&dlng='+encodeURIComponent(x.lng)+'&dname='+encodeURIComponent(x.code+' '+x.name)+'&appname=https%3A%2F%2Flogisys-honam.github.io';
-}
+const ROUTE_PREF_KEY='dealerMapPreferredRouteV1';
+let routeTarget=null;
+function routeSaved(){try{return localStorage.getItem(ROUTE_PREF_KEY)||'';}catch(e){return '';}}
+function routeStore(v){try{if(v)localStorage.setItem(ROUTE_PREF_KEY,v);else localStorage.removeItem(ROUTE_PREF_KEY);}catch(e){}}
+function routeClose(){document.getElementById('routeOverlay').classList.remove('open');}
+function routePanel(target,settings){routeTarget=target||null;document.getElementById('routeHeading').textContent=settings?'기본 길찾기 앱 설정':'길찾기 앱 선택';let p=routeSaved()||'naver';let inp=document.querySelector('input[name=routeApp][value='+p+']');if(inp)inp.checked=true;document.getElementById('routeOverlay').classList.add('open');}
+function routeOpenSettings(){routePanel(null,true);}
+function routeReset(){routeStore('');document.querySelector('input[name=routeApp][value=naver]').checked=true;document.getElementById('routeHeading').textContent='기본 앱 초기화 완료';}
+function routeStart(code){let x=S.data.find(q=>String(q.code)===String(code));if(!x){alert('판매점 정보를 찾지 못했습니다.');return false;}let saved=routeSaved();if(saved){routeLaunch(saved,x);}else{routePanel(x,false);}return false;}
+function routeChoose(always){let a=document.querySelector('input[name=routeApp]:checked');if(!a)return;let app=a.value;if(always)routeStore(app);let x=routeTarget;routeClose();if(x)routeLaunch(app,x);}
+function routeLaunch(app,x){let lat=Number(x.lat),lng=Number(x.lng),name=String(x.name||'판매점');if(!isFinite(lat)||!isFinite(lng)){alert('목적지 좌표가 없습니다.');return;}let label=encodeURIComponent(name),url='';let pc=!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);if(pc){url='https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng;}else if(app==='naver'){url='nmap://navigation?dlat='+lat+'&dlng='+lng+'&dname='+label+'&appname=https%3A%2F%2Flogisys-honam.github.io';}else if(app==='tmap'){url='tmap://route?goalname='+label+'&goalx='+lng+'&goaly='+lat;}else if(app==='kakao'){url='kakaomap://route?ep='+lat+','+lng+'&by=CAR';}else{url='https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng;}if(pc||app==='google'){window.open(url,'_blank','noopener');}else{window.location.href=url;}}
 function infoHtml(x){
 const st=S.statuses[x.code];
 const done=!!(st&&st.done===true);
@@ -126,7 +156,7 @@ const fixed=stickyMemoFor(x.code),round=roundMemoFor(x.code);
 let doneLine='';
 if(done){doneLine='<div class="doneLine">완료';if(st.by)doneLine+=' · '+esc(st.by);doneLine+='</div>';}
 let memoLine='';if(fixed)memoLine+='<div class="memoLine"><span class="memoTag">고정메모</span>'+esc(fixed.text)+'</div>';if(round)memoLine+='<div class="memoLine"><span class="memoTag">이번회차 메모</span>'+esc(round.text)+'</div>';
-return '<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+doneLine+memoLine+'<a class="navbtn" href="'+navUrl(x)+'" target="_blank" rel="noopener">네이버지도 길찾기</a></div>';
+return '<div class="iw"><b>'+esc(x.code)+' · '+esc(x.name)+'</b><br>'+esc(x.address)+doneLine+memoLine+'<a class="navbtn" href="#" onclick="return routeStart(&quot;'+esc(x.code)+'&quot;)">길찾기 앱 선택</a></div>';
 }
 const m=new naver.maps.Map('map',{center:new naver.maps.LatLng(d[0].lat,d[0].lng),zoom:14});
 S.map=m;
